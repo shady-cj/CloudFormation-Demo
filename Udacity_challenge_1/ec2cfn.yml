@@ -1,0 +1,37 @@
+Description: Creating 2 Resources, EC2 instance and a security group
+
+Resources:
+    MySecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Udacity Ec2 security
+            GroupName: Udacity Security Group
+            VpcId: vpc-09c5e23ed72b272a1
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 0.0.0.0/0
+            SecurityGroupEgress:
+                - IpProtocol: -1
+                  FromPort: -1
+                  ToPort: -1
+                  CidrIp: 0.0.0.0/0
+    MyEc2Instance:
+        Type: AWS::EC2::Instance
+        Properties:
+            ImageId: ami-0022f774911c1d690
+            InstanceType: t3.micro
+            NetworkInterfaces:
+                - AssociatePublicIpAddress: "true"
+                  DeviceIndex: "0"
+                  GroupSet:
+                      - Ref: "MySecurityGroup"
+                  SubnetId: subnet-0ccc17c0594b818ac
+            UserData:
+                Fn::Base64: !Sub |
+                    #!/bin/bash
+                    sudo yum update -y
+                    sudo yum install -y httpd
+                    sudo systemctl start httpd
+                    sudo systemctl enable httpd
