@@ -1,0 +1,21 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "UdacityChallenge-2"
+    },
+
+    {
+        "ParameterKey": "CIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+
+    {
+        "ParameterKey": "PublicSubnetCidr",
+        "ParameterValue": "10.0.0.0/24"
+    },
+
+    {
+        "ParameterKey": "PrivateSubnetCidr",
+        "ParameterValue": "10.0.1.0/24"
+    }
+]

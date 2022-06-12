@@ -1,0 +1,158 @@
+Parameters:
+    EnvironmentName:
+        Type: String
+        Description: The general environment name for the infrastructure
+
+    CIDR:
+        Type: String
+        Description: Cidr block ip for vpc
+        Default: 10.0.0.0/16
+
+    PublicSubnetCidr:
+        Type: String
+        Description: Cidr ip block for the public subnet
+
+    PrivateSubnetCidr:
+        Type: String
+        Description: Cidr Ip block for the private subnet
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref CIDR
+            EnableDnsHostnames: true
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-VPC
+
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-IGW
+
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            VpcId: !Ref VPC
+            InternetGatewayId: !Ref InternetGateway
+
+    PublicSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            CidrBlock: !Ref PublicSubnetCidr
+            VpcId: !Ref VPC
+            AvailabilityZone: !Select [0, !GetAZs ""]
+            MapPublicIpOnLaunch: true
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-Pub-Nets
+
+    PrivateSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            CidrBlock: !Ref PrivateSubnetCidr
+            AvailabilityZone: !Select [0, !GetAZs ""]
+            MapPublicIpOnLaunch: false
+            VpcId: !Ref VPC
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-Priv-Nets
+
+    NatGatewayEIP:
+        Type: AWS::EC2::EIP
+        DependsOn: InternetGatewayAttachment
+        Properties:
+            Domain: vpc
+
+    NatGateway:
+        Type: AWS::EC2::NatGateway
+        Properties:
+            AllocationId: !GetAtt NatGatewayEIP.AllocationId
+            SubnetId: !Ref PublicSubnet
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-NatGW
+
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref VPC
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-Public-RT
+
+    DefaultPublicRoute:
+        Type: AWS::EC2::Route
+        DependsOn: InternetGatewayAttachment
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            RouteTableId: !Ref PublicRouteTable
+            GatewayId: !Ref InternetGateway
+
+    PublicSubnetRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            SubnetId: !Ref PublicSubnet
+            RouteTableId: !Ref PublicRouteTable
+
+    PrivateRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref VPC
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-Private-RT
+
+    DefaultPrivateRoute:
+        Type: AWS::EC2::Route
+        DependsOn: InternetGatewayAttachment
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway
+
+    PrivateSubnetRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            SubnetId: !Ref PrivateSubnet
+
+Outputs:
+    VPC:
+        Description: A reference to the vpc created
+        Value: !Ref VPC
+        Export:
+            Name: !Sub ${EnvironmentName}-VPCID
+
+    VPCPublicRouteTable:
+        Description: A reference to the public route table
+        Value: !Ref PublicRouteTable
+        Export:
+            Name: !Sub ${EnvironmentName}-Pub-RT-ID
+
+    VPCPrivateRouteTable:
+        Description: A reference to the private route table
+        Value: !Ref PrivateRouteTable
+        Export:
+            Name: !Sub ${EnvironmentName}-Priv-RT-ID
+
+    Subnets:
+        Description: A List of all subnets both public and private
+        Value: !Join [",", [!Ref PublicSubnet, !Ref PrivateSubnet]]
+        Export:
+            Name: !Sub ${EnvironmentName}-subnets-ids
+
+    PrivateSubnet:
+        Description: A reference to the private subnet
+        Value: !Ref PrivateSubnet
+        Export:
+            Name: !Sub ${EnvironmentName}-Priv-Subnet-ID
+
+    PublicSubnet:
+        Description: A reference to the public subnet
+        Value: !Ref PublicSubnet
+        Export:
+            Name: !Sub ${EnvironmentName}-Pub-Subnet-ID
