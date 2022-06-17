@@ -65,3 +65,16 @@ Resources:
         - DeviceName: "/dev/sdk"
           Ebs:
             VolumeSize: '10'
+            
+  WebAppGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: 
+          !Sub "${EnvironmentName}-PRIV-SUBNETS"
+      LaunchConfigurationName: 
+        Ref: WebAppLaunchConfig
+      MinSize: '3'
+      MaxSize: '5'
+      TargetGroupARNs:
+        - Ref: WebAppTargetGroup
