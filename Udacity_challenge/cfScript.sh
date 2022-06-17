@@ -1,2 +1,2 @@
 #! /bin/bash
-aws cloudformation create-stack --stack-name $1 --region $2 --template-body file://$3 --parameters file://$4
+aws cloudformation create-stack --stack-name $1 us-east-1 --template-body file://$2 --parameters file://$3
